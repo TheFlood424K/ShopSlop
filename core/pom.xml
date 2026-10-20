@@ -388,8 +388,8 @@
         <!-- MockBukkit for testing Bukkit/Spigot/Paper plugins -->
         <dependency>
             <groupId>org.mockbukkit.mockbukkit</groupId>
-            <artifactId>mockbukkit-v26.2</artifactId>
-            <version>4.117.0</version>
+            <artifactId>mockbukkit-v26.3</artifactId>
+            <version>4.118.0</version>
             <scope>test</scope>
         </dependency>
         <!-- Override byte-buddy for Java 25 compatibility -->
