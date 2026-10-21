@@ -85,18 +85,31 @@ public class UtilMethods {
      */
     public static void copy(InputStream in, File file) {
         if (in == null) return;
-        // try-with-resources closes both streams on any path, including the exception path.
-        // A bare try/close-after-loop leaks the FileOutputStream and the InputStream when the
-        // write loop throws (disk full, etc.), and the plugin has no other reference to close
-        // them, so the file handle and the source stream stay open until JVM exit.
         try (OutputStream out = new FileOutputStream(file)) {
-            byte[] buf = new byte[1024];
-            int len;
-            while ((len = in.read(buf)) > 0) {
-                out.write(buf, 0, len);
-            }
+            copy(in, out);
         } catch (Exception e) {
             Shop.getPlugin().getLogger().warning("Error copying resource file to " + file.getPath() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Package-private entry point that closes both streams on any path, including the
+     * exception path. A bare try/close-after-loop leaks the FileOutputStream and the
+     * InputStream when the write loop throws (disk full, etc.), and the plugin has no other
+     * reference to close them, so the file handle and the source stream stay open until
+     * JVM exit.
+     */
+    static void copy(InputStream in, OutputStream out) {
+        if (in == null) return;
+        try (InputStream source = in;
+             OutputStream target = out) {
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = source.read(buf)) > 0) {
+                target.write(buf, 0, len);
+            }
+        } catch (Exception e) {
+            Shop.getPlugin().getLogger().warning("Error copying resource file: " + e.getMessage());
         }
     }
 

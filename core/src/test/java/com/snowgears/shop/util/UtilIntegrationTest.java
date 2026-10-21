@@ -17,6 +17,7 @@ import org.mockbukkit.mockbukkit.MockBukkitInject;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -189,6 +190,68 @@ class UtilIntegrationTest {
         } finally {
             // A closed FileOutputStream releases the handle, so the temp file is
             // deletable right away. An unclosed stream holds the handle on Windows.
+            assertDoesNotThrow(() -> Files.deleteIfExists(path));
+        }
+    }
+
+    /**
+     * A package-private OutputStream that records whether {@link #close()} was invoked, so a
+     * test can observe stream closure directly instead of inferring it from file deletion.
+     */
+    private static final class CloseTrackingOutputStream extends OutputStream {
+        final OutputStream delegate;
+        final AtomicBoolean closed = new AtomicBoolean(false);
+
+        CloseTrackingOutputStream(OutputStream delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            delegate.write(b);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            delegate.write(b, off, len);
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            delegate.write(b);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            delegate.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            delegate.close();
+            closed.set(true);
+        }
+    }
+
+    @Test
+    void copyClosesTheOutputStreamOnTheFailurePath() throws IOException {
+        // The failure path must release the output stream. Track closure directly with a
+        // wrapper rather than inferring it from file deletion, which is environment-specific
+        // and can be satisfied by a finalizer rather than an explicit close().
+        InputStream badSource = new ByteArrayInputStream(new byte[0]) {
+            @Override
+            public int read(byte[] b, int off, int len) {
+                throw new RuntimeException("source refused");
+            }
+        };
+        Path path = Files.createTempFile("shop-copy-test", ".dat");
+        CloseTrackingOutputStream tracked = new CloseTrackingOutputStream(
+                new FileOutputStream(path.toFile()));
+        try {
+            UtilMethods.copy(badSource, tracked);
+        } finally {
+            assertTrue(tracked.closed.get(),
+                    "UtilMethods.copy() must close the output stream on the failure path");
             assertDoesNotThrow(() -> Files.deleteIfExists(path));
         }
     }

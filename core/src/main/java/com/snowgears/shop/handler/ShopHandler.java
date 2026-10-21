@@ -1360,13 +1360,13 @@ public class ShopHandler {
         if (pendingHeadIcons.isEmpty()) {
             return;
         }
-        // Snapshot and clear atomically so a request that races this drain is handled by the
-        // next tick rather than being dropped.
-        java.util.Map<AbstractShop, Object> batch = new java.util.concurrent.ConcurrentHashMap<>();
-        batch.putAll(pendingHeadIcons);
-        pendingHeadIcons.clear();
-
-        for (AbstractShop headShop : batch.keySet()) {
+        // Drain pending head icon reloads one by one, removing each queued shop before
+        // scheduling its reload. This ensures requests added concurrently after drain
+        // begins remain queued for a later timer run rather than being lost.
+        for (AbstractShop headShop : new java.util.ArrayList<>(pendingHeadIcons.keySet())) {
+            if (pendingHeadIcons.remove(headShop) == null) {
+                continue;
+            }
             Location headAnchor = headShop.getChestLocation() != null
                     ? headShop.getChestLocation()
                     : headShop.getSignLocation();

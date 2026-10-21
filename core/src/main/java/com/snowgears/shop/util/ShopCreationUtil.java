@@ -311,7 +311,10 @@ public class ShopCreationUtil {
                     plugin.getLogHandler().logAction(player, shop, ShopActionType.INIT);
                 } catch (RuntimeException createFailure) {
                     // A post-registration failure must not leave a half-created shop behind.
-                    plugin.getShopHandler().removeShop(shop, false);
+                    // forceSave=true persists the removal: sendCreationSuccess() already saved
+                    // the shop, so an in-memory-only rollback would leave a record that reloads
+                    // after restart if the failure happened after the save but before INIT logging.
+                    plugin.getShopHandler().removeShop(shop, true);
                     throw createFailure;
                 }
                 return null;
