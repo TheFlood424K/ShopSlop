@@ -177,19 +177,18 @@ class LogHandlerQueryBoundTest {
     /** Drains async query work and pumps its callback, retrying the async-to-sync handoff. */
     private boolean waitForQuery(AtomicReference<List<PlayerTransactionRecord>> target) {
         for (int i = 0; i < WAIT_ITERATIONS; i++) {
-            server.getScheduler().waitAsyncTasksFinished();
+            // Pump ticks first: any callback scheduled via runNextTick executes here.
+            // Then drain the async pool in case the callback submitted more async work.
             if (waitFor(target, TICKS_PER_WAIT)) {
                 return true;
             }
+            server.getScheduler().waitAsyncTasksFinished();
         }
         return false;
     }
 
     /** Pumps ticks until {@code target} is set, or the caller's budget runs out. */
     private boolean waitFor(AtomicReference<List<PlayerTransactionRecord>> target, int maxTicks) {
-        // Query tests await their async work before entering this tick-bounded helper.
-        // waitAsyncTasksFinished also drains scheduled ticks, so calling it here would
-        // execute callbacks beyond maxTicks and invalidate the budget assertions.
         for (int i = 0; i < maxTicks && target.get() == null; i++) {
             server.getScheduler().performOneTick();
         }
