@@ -16,6 +16,10 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.EulerAngle;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 public class DisplayUtil {
 
     //main groups of angles
@@ -137,6 +141,22 @@ public class DisplayUtil {
         return armorStandData;
     }
 
+    /**
+     * Materials that belong on the armor stand's HEAD slot.
+     *
+     * <p>Named explicitly rather than inferred from the material name. The old code asked
+     * {@code type.isBlock()} here, which sent every block item — dirt, stone, logs — to the head,
+     * and relied on {@code "_HELMET"} substring matching, which misclassified anything whose name
+     * merely contained that sequence. A new material or a mod-added item with a non-standard name
+     * silently landed in the wrong slot.
+     */
+    private static final Set<Material> HEAD_SLOT_MATERIALS = new HashSet<>(Arrays.asList(
+            Material.IRON_HELMET, Material.DIAMOND_HELMET, Material.NETHERITE_HELMET,
+            Material.LEATHER_HELMET, Material.TURTLE_HELMET, Material.CARVED_PUMPKIN,
+            Material.PLAYER_HEAD, Material.SKELETON_SKULL, Material.WITHER_SKELETON_SKULL,
+            Material.ZOMBIE_HEAD, Material.CREEPER_HEAD, Material.DRAGON_HEAD, Material.PIGLIN_HEAD
+    ));
+
     public static EquipmentSlot getEquipmentSlot(ItemStack itemStack){
 
         Material type = itemStack.getType();
@@ -145,7 +165,7 @@ public class DisplayUtil {
         if(isHeldBlock(type)){
             return EquipmentSlot.HAND;
         }
-        else if(sType.contains("_HELMET") || type == Material.PLAYER_HEAD || type.isBlock()){
+        else if(HEAD_SLOT_MATERIALS.contains(type)){
             return EquipmentSlot.HEAD;
         }
         else if(sType.contains("_CHESTPLATE") || type == Material.ELYTRA){

@@ -627,21 +627,13 @@ public class LogHandler {
      * optionally narrowed by a {@link TransactionLookupFilter} (action type, included/excluded items, customer name).
      * Results are ordered most-recent first. The callback is always invoked on the main thread; it receives an
      * empty list if logging is disabled or if the query fails.
+     *
+     * <p>Disabled-logging and shutdown races are handled <em>inside</em> the async task rather than
+     * short-circuited here: the hop from the main thread to the async pool is the boundary where a
+     * shutdown can land, and a check taken before that hop is stale the moment it is read. The
+     * {@code enabled} flag is {@code volatile} so the async task sees the value shutdown() writes.
      */
     public void getShopTransactions(UUID ownerUUID, long startTime, long endTime, TransactionLookupFilter filter, Consumer<List<PlayerTransactionRecord>> callback) {
-        if (!enabled) {
-            callback.accept(Collections.emptyList());
-            return;
-        }
-
-        // Shutdown before the async hop even starts: answer empty without touching the pool. The
-        // callback still fires — it is the caller's only completion signal — so this is a fast,
-        // truthful answer rather than a silent one.
-        if (!enabled) {
-            callback.accept(Collections.emptyList());
-            return;
-        }
-
         // A null filter means "no narrowing", which is what a caller passing nothing means. Left
         // as-is it NPEs on the first getCustomerName() inside the async task, which surfaces as an
         // AsyncTaskException at unmock rather than at the call. Bound to a new local because the
@@ -651,6 +643,15 @@ public class LogHandler {
 
         plugin.getFoliaLib().getScheduler().runAsync(task -> {
             List<PlayerTransactionRecord> transactions = new ArrayList<>();
+
+            // Read the flag here, after the hop to the async pool. A check taken on the calling
+            // thread is stale the instant it returns: shutdown() can land in the gap between that
+            // check and this one, and then the pool is closed before the query runs. Delivering
+            // empty is correct either way — the caller's only completion signal is the callback.
+            if (!enabled) {
+                plugin.getFoliaLib().getScheduler().runNextTick(nextTask -> callback.accept(Collections.emptyList()));
+                return;
+            }
 
             // A shutdown landing after this point closes the pool under the query. That is caught
             // below and answered empty; the callback fires either way.
