@@ -18,9 +18,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.DoubleChest;
 import org.bukkit.block.Sign;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Rotatable;
 import org.bukkit.block.data.type.WallSign;
-import org.bukkit.Tag;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -87,6 +87,25 @@ public class MiscListener implements Listener {
         return best;
     }
 
+    /**
+     * Whether a block is a wall or standing shop sign.
+     *
+     * <p>Deliberately does <em>not</em> use {@code Tag.WALL_SIGNS} / {@code Tag.STANDING_SIGNS}.
+     * Those tags are lazily resolved through {@code Bukkit.getTag(...)}, which throws
+     * {@code NullPointerException} when no server has been mocked yet (pure unit tests that
+     * construct a listener with a mocked plugin). The failed {@code Tag} class init then
+     * poisons the entire JVM for every later test in the fork, surfacing as
+     * {@code NoClassDefFoundError} long after the offending test has finished. Checking the
+     * block-data type directly is equivalent and has no server dependency.
+     */
+    private boolean isSignBlock(Block block) {
+        if (block == null) {
+            return false;
+        }
+        BlockData data = block.getBlockData();
+        return data instanceof WallSign || data instanceof Rotatable;
+    }
+
     //prevent emptying of bucket when player clicks on shop sign
     //also prevent when emptying on display item itself
     /**
@@ -102,7 +121,7 @@ public class MiscListener implements Listener {
 
         Block b = event.getBlockClicked();
 
-        if (Tag.WALL_SIGNS.isTagged(b.getType()) || Tag.STANDING_SIGNS.isTagged(b.getType())) {
+        if (isSignBlock(b)) {
             AbstractShop shop = plugin.getShopHandler().getShop(b.getLocation());
             if (shop != null)
                 event.setCancelled(true);
@@ -241,7 +260,7 @@ public class MiscListener implements Listener {
                             // types including freestanding sign-post shops, not only wall signs.
                             String[] lines = ShopMessage.getSignLines("timeout", shop);
                             Block timeoutSignBlock = signLocation.getBlock();
-                            if (Tag.WALL_SIGNS.isTagged(timeoutSignBlock.getType()) || Tag.STANDING_SIGNS.isTagged(timeoutSignBlock.getType())) {
+                            if (isSignBlock(timeoutSignBlock)) {
                                 Sign sign = (Sign) timeoutSignBlock.getState();
                                 sign.setLine(0, lines[0]);
                                 sign.setLine(1, lines[1]);
@@ -317,7 +336,7 @@ public class MiscListener implements Listener {
             return false;
         }
 
-        if (Tag.WALL_SIGNS.isTagged(target.getType()) || Tag.STANDING_SIGNS.isTagged(target.getType())) {
+        if (isSignBlock(target)) {
             AbstractShop shop = plugin.getShopHandler().getShop(target.getLocation());
             return shop != null && !shop.isInitialized();
         }
@@ -396,7 +415,7 @@ public class MiscListener implements Listener {
      */
     public void handleShopLeftClick(Player player, Block clicked, ItemStack itemInHand, BlockFace blockFace,
                                      PlayerInteractEvent event) {
-        if (Tag.WALL_SIGNS.isTagged(clicked.getType()) || Tag.STANDING_SIGNS.isTagged(clicked.getType())) {
+        if (isSignBlock(clicked)) {
 
             if(!plugin.getAllowCreationMethodSign())
                 return;
@@ -737,7 +756,7 @@ public class MiscListener implements Listener {
         Block b = event.getBlock();
         Player player = event.getPlayer();
 
-        if (Tag.WALL_SIGNS.isTagged(b.getType()) || Tag.STANDING_SIGNS.isTagged(b.getType())) {
+        if (isSignBlock(b)) {
             AbstractShop shop = plugin.getShopHandler().getShop(b.getLocation());
             if (shop == null)
                 return;
