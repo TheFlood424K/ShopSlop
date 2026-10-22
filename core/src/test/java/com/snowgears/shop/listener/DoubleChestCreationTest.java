@@ -9,10 +9,12 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Chest;
 import org.bukkit.block.DoubleChest;
+import org.bukkit.block.data.type.WallSign;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -21,6 +23,7 @@ import static org.mockito.Mockito.*;
 
 @Tag("unit")
 class DoubleChestCreationTest {
+    private Shop plugin;
     private ShopHandler handler;
     private ShopCreationUtil creation;
     private MiscListener listener;
@@ -31,7 +34,7 @@ class DoubleChestCreationTest {
     /** Builds a listener fixture whose two chest blocks share one double-chest inventory. */
     @BeforeEach
     void setUp() {
-        Shop plugin = mock(Shop.class);
+        plugin = mock(Shop.class);
         handler = mock(ShopHandler.class);
         creation = mock(ShopCreationUtil.class);
         player = mock(Player.class);
@@ -102,5 +105,32 @@ class DoubleChestCreationTest {
         verify(handler).getShopByChest(clicked);
         verify(handler).getShopByChest(mate);
         verifyNoInteractions(creation);
+    }
+
+    /**
+     * Verifies that the sign branch of {@code handleShopLeftClick} does not touch
+     * {@code org.bukkit.Tag}. That class's static initializer calls
+     * {@code Bukkit.getTag(...)}, which NPEs when no server is mocked, and the failed
+     * class init poisons the whole JVM for every later test in the fork. This test
+     * exercises the branch with a mocked {@link WallSign} block data and must not
+     * throw {@code NoClassDefFoundError}.
+     */
+    @Test
+    void signBranchDoesNotTriggerTagClassInit() {
+        when(plugin.getAllowCreationMethodSign()).thenReturn(true);
+        Block sign = mock(Block.class);
+        WallSign wallSign = mock(WallSign.class);
+        when(sign.getBlockData()).thenReturn(wallSign);
+        // An uninitialized shop on the sign is what the sign branch looks for.
+        AbstractShop uninitialized = mock(AbstractShop.class);
+        when(uninitialized.isInitialized()).thenReturn(false);
+        when(handler.getShop(sign.getLocation())).thenReturn(uninitialized);
+
+        // Should return early on the null/AIR item check without touching Tag.
+        listener.handleShopLeftClick(player, sign, null, BlockFace.NORTH);
+
+        verify(plugin).getAllowCreationMethodSign();
+        verify(handler).getShop(sign.getLocation());
+        verifyNoMoreInteractions(handler);
     }
 }

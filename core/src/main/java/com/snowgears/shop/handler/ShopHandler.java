@@ -282,6 +282,10 @@ public class ShopHandler {
     //This method should only be used by AbstractShop object to delete
     public void removeShop(AbstractShop shop, boolean forceSave) {
             boolean changed = false;
+            // Remove by key. addShop() now returns the shop that is actually registered when a
+            // concurrent addition wins, so callers that honour that return value always hold the
+            // registered instance; a remove(key, value) would silently no-op on a Mockito spy
+            // (a distinct wrapper instance) and break load-failure cleanup.
             if (allShops.containsKey(shop.getSignLocation())) {
                 allShops.remove(shop.getSignLocation());
                 changed = true;
@@ -1356,13 +1360,13 @@ public class ShopHandler {
         if (pendingHeadIcons.isEmpty()) {
             return;
         }
-        // Snapshot and clear atomically so a request that races this drain is handled by the
-        // next tick rather than being dropped.
-        java.util.Map<AbstractShop, Object> batch = new java.util.concurrent.ConcurrentHashMap<>();
-        batch.putAll(pendingHeadIcons);
-        pendingHeadIcons.clear();
-
-        for (AbstractShop headShop : batch.keySet()) {
+        // Drain pending head icon reloads one by one, removing each queued shop before
+        // scheduling its reload. This ensures requests added concurrently after drain
+        // begins remain queued for a later timer run rather than being lost.
+        for (AbstractShop headShop : new java.util.ArrayList<>(pendingHeadIcons.keySet())) {
+            if (pendingHeadIcons.remove(headShop) == null) {
+                continue;
+            }
             Location headAnchor = headShop.getChestLocation() != null
                     ? headShop.getChestLocation()
                     : headShop.getSignLocation();

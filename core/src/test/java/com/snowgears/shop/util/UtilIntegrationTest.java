@@ -14,6 +14,16 @@ import org.mockbukkit.mockbukkit.ServerMock;
 import org.mockbukkit.mockbukkit.MockBukkitExtension;
 import org.mockbukkit.mockbukkit.MockBukkitInject;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -146,6 +156,103 @@ class UtilIntegrationTest {
         // Test ShopClickType enum values
         for (ShopClickType type : ShopClickType.values()) {
             assertNotNull(type.name());
+        }
+    }
+
+    @Test
+    void copyWritesTheFullInputStreamAndClosesBothStreams() throws IOException {
+        Path path = Files.createTempFile("shop-copy-test", ".dat");
+        try {
+            InputStream in = new ByteArrayInputStream(new byte[]{1, 2, 3, 4, 5});
+            UtilMethods.copy(in, path.toFile());
+            assertArrayEquals(new byte[]{1, 2, 3, 4, 5}, Files.readAllBytes(path));
+        } finally {
+            assertDoesNotThrow(() -> Files.deleteIfExists(path));
+        }
+    }
+
+    @Test
+    void copyClosesTheOutputStreamEvenWhenTheWriteLoopThrows() throws IOException {
+        // UtilMethods.copy() catches and logs the read exception rather than propagating it,
+        // so the assertion here is about resource hygiene, not exception propagation. The
+        // old implementation closed the FileOutputStream only on the happy path, after the
+        // write loop, so a mid-copy failure leaked the file handle. With try-with-resources
+        // the handle is released regardless, and the temp file is deletable immediately.
+        InputStream badSource = new ByteArrayInputStream(new byte[0]) {
+            @Override
+            public int read(byte[] b, int off, int len) {
+                throw new RuntimeException("source refused");
+            }
+        };
+        Path path = Files.createTempFile("shop-copy-test", ".dat");
+        try {
+            UtilMethods.copy(badSource, path.toFile());
+        } finally {
+            // A closed FileOutputStream releases the handle, so the temp file is
+            // deletable right away. An unclosed stream holds the handle on Windows.
+            assertDoesNotThrow(() -> Files.deleteIfExists(path));
+        }
+    }
+
+    /**
+     * A package-private OutputStream that records whether {@link #close()} was invoked, so a
+     * test can observe stream closure directly instead of inferring it from file deletion.
+     */
+    private static final class CloseTrackingOutputStream extends OutputStream {
+        final OutputStream delegate;
+        final AtomicBoolean closed = new AtomicBoolean(false);
+
+        CloseTrackingOutputStream(OutputStream delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            delegate.write(b);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            delegate.write(b, off, len);
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            delegate.write(b);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            delegate.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            delegate.close();
+            closed.set(true);
+        }
+    }
+
+    @Test
+    void copyClosesTheOutputStreamOnTheFailurePath() throws IOException {
+        // The failure path must release the output stream. Track closure directly with a
+        // wrapper rather than inferring it from file deletion, which is environment-specific
+        // and can be satisfied by a finalizer rather than an explicit close().
+        InputStream badSource = new ByteArrayInputStream(new byte[0]) {
+            @Override
+            public int read(byte[] b, int off, int len) {
+                throw new RuntimeException("source refused");
+            }
+        };
+        Path path = Files.createTempFile("shop-copy-test", ".dat");
+        CloseTrackingOutputStream tracked = new CloseTrackingOutputStream(
+                new FileOutputStream(path.toFile()));
+        try {
+            UtilMethods.copy(badSource, tracked);
+        } finally {
+            assertTrue(tracked.closed.get(),
+                    "UtilMethods.copy() must close the output stream on the failure path");
+            assertDoesNotThrow(() -> Files.deleteIfExists(path));
         }
     }
 }
