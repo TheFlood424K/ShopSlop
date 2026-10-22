@@ -154,7 +154,8 @@ public class DisplayUtil {
             Material.IRON_HELMET, Material.DIAMOND_HELMET, Material.NETHERITE_HELMET,
             Material.LEATHER_HELMET, Material.TURTLE_HELMET, Material.CARVED_PUMPKIN,
             Material.PLAYER_HEAD, Material.SKELETON_SKULL, Material.WITHER_SKELETON_SKULL,
-            Material.ZOMBIE_HEAD, Material.CREEPER_HEAD, Material.DRAGON_HEAD, Material.PIGLIN_HEAD
+            Material.ZOMBIE_HEAD, Material.CREEPER_HEAD, Material.DRAGON_HEAD, Material.PIGLIN_HEAD,
+            Material.GOLDEN_HELMET, Material.CHAINMAIL_HELMET, Material.COPPER_HELMET
     ));
 
     public static EquipmentSlot getEquipmentSlot(ItemStack itemStack){

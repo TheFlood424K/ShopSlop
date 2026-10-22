@@ -62,6 +62,12 @@ public class DisplayUtilTest {
                 "Turtle helmet -> HEAD");
         assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(item(Material.LEATHER_HELMET)),
                 "Leather helmet -> HEAD");
+        assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(item(Material.GOLDEN_HELMET)),
+                "Golden helmet -> HEAD");
+        assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(item(Material.CHAINMAIL_HELMET)),
+                "Chainmail helmet -> HEAD");
+        assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(item(Material.COPPER_HELMET)),
+                "Copper helmet -> HEAD");
         assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(item(Material.CARVED_PUMPKIN)),
                 "Carved pumpkin -> HEAD");
         assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(item(Material.PLAYER_HEAD)),
