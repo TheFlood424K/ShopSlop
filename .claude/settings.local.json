@@ -1,5 +1,21 @@
 {
   "permissions": {
+    "deny": [
+      "Bash(wsl*)",
+      "Bash(bash*)",
+      "Bash(sh *)",
+      "Bash(/bin/*)",
+      "Bash(sed *)",
+      "Bash(awk *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(find *)",
+      "Bash(cat *)",
+      "Bash(ls -*)",
+      "Bash(grep *)",
+      "Bash(rm -rf*)",
+      "Bash(Remove-Item*-Recurse*)"
+    ],
     "allow": [
       "PowerShell",
       "Read",
@@ -15,27 +31,13 @@
       "Bash(Set-*)",
       "Bash(Test-*)",
       "Bash(New-*)"
-    ],
-    "deny": [
-      "Bash(wsl*)",
-      "Bash(bash*)",
-      "Bash(sh *)",
-      "Bash(/bin/*)",
-      "Bash(sed *)",
-      "Bash(awk *)",
-      "Bash(head *)",
-      "Bash(tail *)",
-      "Bash(find *)",
-      "Bash(cat *)",
-      "Bash(ls -*)",
-      "Bash(grep *)",
-      "Bash(rm -rf*)"
     ]
   },
   "env": {
-    "CLAUDE_CODE_USE_POWERSHELL": "1",
     "SHELL": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShellPreview_7.7.5.0_arm64__8wekyb3d8bbwe\\pwsh.exe",
     "CLAUDE_CODE_SHELL": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShellPreview_7.7.5.0_arm64__8wekyb3d8bbwe\\pwsh.exe",
-    "CLAUDE_CODE_DISABLE_WSL": "1"
+    "CLAUDE_CODE_DISABLE_WSL": "1",
+    "CLAUDE_CODE_USE_POWERSHELL": "1"
   }
 }
+
