@@ -13,7 +13,10 @@
       "Bash(cat *)",
       "Bash(ls -*)",
       "Bash(grep *)",
-      "Bash(rm -rf*)"
+      "Bash(rm -rf*)",
+      "Bash(Remove-Item*-Recurse*)",
+      "Bash(rm *-r*)",
+      "Bash(rm *-R*)"
     ],
     "allow": [
       "PowerShell",
