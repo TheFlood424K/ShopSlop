@@ -649,7 +649,7 @@ public class LogHandler {
             // check and this one, and then the pool is closed before the query runs. Delivering
             // empty is correct either way — the caller's only completion signal is the callback.
             if (!enabled) {
-                plugin.getFoliaLib().getScheduler().runNextTick(nextTask -> callback.accept(Collections.emptyList()));
+                callback.accept(Collections.emptyList());
                 return;
             }
 
@@ -665,7 +665,7 @@ public class LogHandler {
                     // Nobody by that name has ever played, so there can be no matching transactions.
                     // Deliver unconditionally: this path touches no connection, and suppressing the
                     // callback would leave the caller with no completion signal at all.
-                    plugin.getFoliaLib().getScheduler().runNextTick(nextTask -> callback.accept(Collections.emptyList()));
+                    callback.accept(Collections.emptyList());
                     return;
                 }
                 customerUUIDFilter = offlinePlayer.getUniqueId();
@@ -727,7 +727,7 @@ public class LogHandler {
             // before that or produced nothing — but suppressing the callback would leave the caller
             // with no completion signal, and a caller waiting on a delivery is worse than one told
             // the truth.
-            plugin.getFoliaLib().getScheduler().runNextTick(nextTask -> callback.accept(transactions));
+            callback.accept(transactions);
         });
     }
 
