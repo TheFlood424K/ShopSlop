@@ -138,6 +138,9 @@ public class DisplayUtil {
     }
 
     public static EquipmentSlot getEquipmentSlot(ItemStack itemStack){
+        if (itemStack == null || itemStack.getType() == null || itemStack.getType() == Material.AIR) {
+            return EquipmentSlot.HAND;
+        }
 
         Material type = itemStack.getType();
         String sType = type.toString().toUpperCase();
