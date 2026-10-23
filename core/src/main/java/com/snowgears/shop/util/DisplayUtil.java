@@ -142,6 +142,11 @@ public class DisplayUtil {
         Material type = itemStack.getType();
         String sType = type.toString().toUpperCase();
 
+        // Blocks that are not explicitly held items display in the hand, never on the head.
+        if (type.isBlock() && !isHeldBlock(type)) {
+            return EquipmentSlot.HAND;
+        }
+
         if(isHeldBlock(type)){
             return EquipmentSlot.HAND;
         }
