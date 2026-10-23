@@ -17,12 +17,14 @@ class DisplayUtilEquipmentSlotTest {
         assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.DIRT)),
                 "A plain block must be displayed in the hand, not on the head");
         assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.STONE)));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.OAK_PLANKS)));
     }
 
     @Test
     void helmetsUseHeadSlot() {
         assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(new ItemStack(Material.IRON_HELMET)));
         assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(new ItemStack(Material.PLAYER_HEAD)));
+        assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(new ItemStack(Material.CARVED_PUMPKIN)));
     }
 
     @Test
@@ -35,5 +37,17 @@ class DisplayUtilEquipmentSlotTest {
     @Test
     void elytraUsesChest() {
         assertEquals(EquipmentSlot.CHEST, DisplayUtil.getEquipmentSlot(new ItemStack(Material.ELYTRA)));
+    }
+
+    @Test
+    void toolsAndWeaponsUseHand() {
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.IRON_SWORD)));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.DIAMOND_PICKAXE)));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.BOW)));
+    }
+
+    @Test
+    void nullAndAirUseHand() {
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.AIR)));
     }
 }
