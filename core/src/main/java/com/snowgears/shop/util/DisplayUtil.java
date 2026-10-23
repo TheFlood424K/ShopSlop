@@ -152,7 +152,9 @@ public class DisplayUtil {
 
         // Armor and head-worn items use their dedicated slots, even when the
         // material is also a block (e.g. player heads, carved pumpkins).
-        if(sType.contains("_HELMET") || type == Material.PLAYER_HEAD || type == Material.CARVED_PUMPKIN || type == Material.JACK_O_LANTERN){
+        if(sType.contains("_HELMET") || sType.endsWith("_HEAD") || sType.endsWith("_SKULL")
+                || type == Material.PLAYER_HEAD || type == Material.CARVED_PUMPKIN
+                || type == Material.JACK_O_LANTERN){
             return EquipmentSlot.HEAD;
         }
         else if(sType.contains("_CHESTPLATE") || type == Material.ELYTRA){
