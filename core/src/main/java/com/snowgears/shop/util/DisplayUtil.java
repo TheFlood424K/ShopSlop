@@ -145,7 +145,7 @@ public class DisplayUtil {
         if(isHeldBlock(type)){
             return EquipmentSlot.HAND;
         }
-        else if(sType.contains("_HELMET") || type == Material.PLAYER_HEAD || type.isBlock()){
+        else if(sType.contains("_HELMET") || type == Material.PLAYER_HEAD){
             return EquipmentSlot.HEAD;
         }
         else if(sType.contains("_CHESTPLATE") || type == Material.ELYTRA){
