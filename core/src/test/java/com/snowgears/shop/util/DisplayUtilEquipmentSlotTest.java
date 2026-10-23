@@ -13,6 +13,8 @@ class DisplayUtilEquipmentSlotTest {
     void blocksGoToHand() {
         assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.DIRT)));
         assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.STONE)));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.OAK_LOG)));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.GLASS)));
     }
 
     @Test
@@ -28,5 +30,20 @@ class DisplayUtilEquipmentSlotTest {
         assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(new ItemStack(Material.PLAYER_HEAD)));
         assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(new ItemStack(Material.ZOMBIE_HEAD)));
         assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(new ItemStack(Material.CARVED_PUMPKIN)));
+        assertEquals(EquipmentSlot.HEAD, DisplayUtil.getEquipmentSlot(new ItemStack(Material.JACK_O_LANTERN)));
+    }
+
+    @Test
+    void toolsAndUnknownGoToHand() {
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.DIAMOND_SWORD)));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.DIAMOND_PICKAXE)));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.SHIELD)));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.STICK)));
+    }
+
+    @Test
+    void nullAndAirGoToHand() {
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(null));
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.AIR)));
     }
 }
