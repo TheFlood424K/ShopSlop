@@ -142,15 +142,19 @@ public class DisplayUtil {
         Material type = itemStack.getType();
         String sType = type.toString().toUpperCase();
 
-        // Blocks that are not explicitly held items display in the hand, never on the head.
-        if (type.isBlock() && !isHeldBlock(type)) {
-            return EquipmentSlot.HAND;
-        }
+public static EquipmentSlot getEquipmentSlot(ItemStack itemStack){
 
+        Material type = itemStack.getType();
+        String sType = type.toString().toUpperCase();
+
+        // Held blocks (saplings, glass panes, torches, etc.) are displayed in the hand.
         if(isHeldBlock(type)){
             return EquipmentSlot.HAND;
         }
-        else if(sType.contains("_HELMET") || type == Material.PLAYER_HEAD || type == Material.CARVED_PUMPKIN || type == Material.JACK_O_LANTERN){
+
+        // Armor and head-worn items use their dedicated slots, even when the
+        // material is also a block (e.g. player heads, carved pumpkins).
+        if(sType.contains("_HELMET") || type == Material.PLAYER_HEAD || type == Material.CARVED_PUMPKIN || type == Material.JACK_O_LANTERN){
             return EquipmentSlot.HEAD;
         }
         else if(sType.contains("_CHESTPLATE") || type == Material.ELYTRA){
@@ -162,7 +166,14 @@ public class DisplayUtil {
         else if(sType.contains("_BOOTS")){
             return EquipmentSlot.FEET;
         }
+
+        // Any other block is displayed in the hand, never on the head.
+        if (type.isBlock()) {
+            return EquipmentSlot.HAND;
+        }
+
         return EquipmentSlot.HAND;
+    }
     }
 
     public static Location getStandLocation(Location blockLocation, Material material, BlockFace facing, EquipmentSlot equipmentSlot){
