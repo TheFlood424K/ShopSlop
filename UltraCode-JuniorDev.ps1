@@ -151,10 +151,11 @@ $SubagentInitScript = {
         }
         $line = "$icon [$cleanRole] $ts - $Message"
         try {
-            $logDir = ".mcc-claude/cache/logs"
+            $baseDir = if ($WORKING_DIR) { $WORKING_DIR } else { (Get-Location).Path }
+            $logDir = Join-Path $baseDir ".mcc-claude/cache/logs"
             if (-not (Test-Path $logDir)) { $null = New-Item -ItemType Directory -Path $logDir -Force -ErrorAction SilentlyContinue }
-            Add-Content -Path ".mcc-claude/cache/logs/subagent-$cleanRole.log" -Value $line -Encoding utf8 -ErrorAction SilentlyContinue
-            Add-Content -Path ".mcc-claude/cache/logs/live-stream.log" -Value $line -Encoding utf8 -ErrorAction SilentlyContinue
+            Add-Content -Path (Join-Path $logDir "subagent-$cleanRole.log") -Value $line -Encoding utf8 -ErrorAction SilentlyContinue
+            Add-Content -Path (Join-Path $logDir "live-stream.log") -Value $line -Encoding utf8 -ErrorAction SilentlyContinue
         } catch {}
     }
     function Save-AtomicJson {
@@ -167,9 +168,10 @@ $SubagentInitScript = {
     # =========================================================================
     # INTER-AGENT EVENT BUS & DISTRIBUTED BLACKBOARD
     # =========================================================================
-    $BUS_DIR = ".mcc-claude/cache/bus"
-    $BLACKBOARD_FILE = "$BUS_DIR/blackboard.json"
-    $EVENT_LOG = "$BUS_DIR/events.log"
+    $baseDir = if ($WORKING_DIR) { $WORKING_DIR } else { (Get-Location).Path }
+    $BUS_DIR = Join-Path $baseDir ".mcc-claude/cache/bus"
+    $BLACKBOARD_FILE = Join-Path $BUS_DIR "blackboard.json"
+    $EVENT_LOG = Join-Path $BUS_DIR "events.log"
     $script:LastPublishedMessageBySender = @{}
     function Get-Blackboard {
         if (Test-Path $BLACKBOARD_FILE) {
@@ -429,7 +431,8 @@ $SubagentInitScript = {
         return (Test-Path "$BUS_DIR/stop.signal")
     }
     function Get-OrchestratorState {
-        $stateFile = ".mcc-claude/cache/progress/orchestrator-state.json"
+        $baseDir = if ($WORKING_DIR) { $WORKING_DIR } else { (Get-Location).Path }
+        $stateFile = Join-Path $baseDir ".mcc-claude/cache/progress/orchestrator-state.json"
         $defaultState = @{
             ActiveIssue        = $null
             CompletedIssues    = @()
@@ -456,7 +459,7 @@ $SubagentInitScript = {
     }
     function Save-OrchestratorState($StateObj) {
         $StateObj["UpdatedAt"] = (Get-Date -Format "o")
-        Save-AtomicJson -Data $StateObj -Destination ".mcc-claude/cache/progress/orchestrator-state.json" -Depth 10
+        $baseDir = if ($WORKING_DIR) { $WORKING_DIR } else { (Get-Location).Path }; Save-AtomicJson -Data $StateObj -Destination (Join-Path $baseDir ".mcc-claude/cache/progress/orchestrator-state.json") -Depth 10
     }
     function Search-UpstreamAndForkFixes {
         param([string]$IssueTitle, [string]$IssueBody, [string]$UpstreamRepo = "snowgears/Shop")
@@ -1276,16 +1279,22 @@ $null = Invoke-CodingAgent -Prompt "Fix the remaining Maven failure in '$($mvn.L
             if ($LASTEXITCODE -eq 0 -and $raw) { $issue = ($raw | Out-String) | ConvertFrom-Json }
         } else {
             Write-SubagentLog "IssueSolver" "Scanning open Issues in $repo without an existing open PR..." "INFO"
-            $issuesRaw = gh issue list -R $repo --state open --limit 1000 --json number,title,body,labels,url *>&1
-            $prsRaw = gh pr list -R $repo --state open --limit 50 --json number,title,headRefName,body *>&1
+            $issuesRaw = gh issue list -R $repo --state open --limit 30 --json number,title,labels,url *>&1
+            $prsRaw = gh pr list -R $repo --state open --limit 30 --json number,title,headRefName *>&1
             if ($LASTEXITCODE -eq 0 -and $issuesRaw) {
                 $openIssues = @(($issuesRaw | Out-String) | ConvertFrom-Json)
-$openPRText = if ($prsRaw) { ($prsRaw | Out-String) } else { "" }
+                $openPRText = if ($prsRaw) { ($prsRaw | Out-String) } else { "" }
                 foreach ($candidate in $openIssues) {
                     $num = $candidate.number
-$attempts = if ($state.IssueAttempts.ContainsKey("$num")) { [int]$state.IssueAttempts["$num"] } else { 0 }
-if (($state.CompletedIssues -notcontains $num) -and ($attempts -lt 3) -and ($openPRText -notmatch "(#$num\b|issue-$num\b)")) {
-                        $issue = $candidate
+                    $attempts = if ($state.IssueAttempts.ContainsKey("$num")) { [int]$state.IssueAttempts["$num"] } else { 0 }
+                    if (($state.CompletedIssues -notcontains $num) -and ($attempts -lt 3) -and ($openPRText -notmatch "(#$num\b|issue-$num\b)")) {
+                        # Fetch full issue body for the chosen candidate only
+                        $viewRaw = gh issue view $num -R $repo --json number,title,body,labels,url *>&1
+                        if ($LASTEXITCODE -eq 0 -and $viewRaw) {
+                            $issue = ($viewRaw | Out-String) | ConvertFrom-Json
+                        } else {
+                            $issue = $candidate
+                        }
                         break
                     }
                 }
@@ -1472,15 +1481,19 @@ Write-SubagentLog "MergeSentinel" "PR #$($opr.number) has MERGE CONFLICTS with b
 $INIT_SCRIPT_DIR = Join-Path $WORKING_DIR ".mcc-claude/cache/scripts"
 if (-not (Test-Path $INIT_SCRIPT_DIR)) { $null = New-Item -ItemType Directory -Path $INIT_SCRIPT_DIR -Force }
 $INIT_SCRIPT_FILE = Join-Path $INIT_SCRIPT_DIR "subagent-init.ps1"
-Set-Content -Path $INIT_SCRIPT_FILE -Value $SubagentInitScript.ToString() -Encoding utf8
-. $INIT_SCRIPT_FILE
+if ($null -ne $SubagentInitScript) {
+    Set-Content -Path $INIT_SCRIPT_FILE -Value $SubagentInitScript.ToString() -Encoding utf8 -Force
+}
+if (Test-Path $INIT_SCRIPT_FILE) {
+    . $INIT_SCRIPT_FILE
+}
 function Spawn-Subagent($role, $scriptBlock, $argumentList) {
     Write-LogInfo "Spawning dedicated Subagent for role: [$role]..."
     Update-ActiveSubagentState -role $role -status "Running" -detail "Started at $(Get-Date -Format 'HH:mm:ss')"
     $roleLogFile = Join-Path $WORKING_DIR ".mcc-claude/cache/logs/subagent-$role.log"
     "=== SUBAGENT [$role] RUN STARTED $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ===" | Out-File -FilePath $roleLogFile -Encoding utf8
-    if (-not (Test-Path $INIT_SCRIPT_FILE)) {
-        Set-Content -Path $INIT_SCRIPT_FILE -Value $SubagentInitScript.ToString() -Encoding utf8
+    if (-not (Test-Path $INIT_SCRIPT_FILE) -and $null -ne $SubagentInitScript) {
+        Set-Content -Path $INIT_SCRIPT_FILE -Value $SubagentInitScript.ToString() -Encoding utf8 -Force
     }
     $initCall = [scriptblock]::Create(". '$INIT_SCRIPT_FILE'")
     Import-Module ThreadJob -ErrorAction SilentlyContinue
@@ -1613,6 +1626,14 @@ $inProgMain = @($mainRuns | Where-Object { $_.status -in @("in_progress", "queue
                 $null = Update-Blackboard {
                     param($bb)
                     $bb["MainBranchGreen"] = $isMainGreen
+                    if ($isMainGreen) {
+                        foreach ($r in @("CodeRabbit", "QualityControl", "MergeSentinel")) {
+                            if ($bb.SubagentStates -and $bb.SubagentStates[$r] -and $bb.SubagentStates[$r].Detail -match "Waiting for CiHealer") {
+                                $bb.SubagentStates[$r].State = "ACTIVE"
+                                $bb.SubagentStates[$r].Detail = "Monitoring repository"
+                            }
+                        }
+                    }
                 }
                 if (-not $isMainGreen -and $failingMain.Count -gt 0) {
                     Publish-AgentEvent -Sender "CiHealer" -EventType "MainBranchFailing" -Payload @{ RunId = $failingMain[0].databaseId } -Message "PRIORITY #1: 'main' branch CI is failing (Run #$($failingMain[0].databaseId)). Healing main first!"
@@ -1726,7 +1747,7 @@ $sbIssueSolverSwarm = {
     param($workDir, $repo)
     Set-Location $workDir
     $initFile = Join-Path $workDir ".mcc-claude/cache/scripts/subagent-init.ps1"; if (Test-Path $initFile) { . $initFile }
-    Write-SubagentLog "IssueSolver" "Autonomous Issue Solver worker started with Multi-Branch Worktree capability." "SUCCESS"
+    Write-SubagentLog "IssueSolver" "Autonomous Issue Solver worker started (native root branch workflow)." "SUCCESS"
     while (-not (Test-SwarmStopRequested)) {
         try {
             $bb = Get-Blackboard
@@ -1736,12 +1757,15 @@ $sbIssueSolverSwarm = {
                 for ($i = 0; $i -lt 15; $i++) { if (Test-SwarmStopRequested) { break }; Start-Sleep -Seconds 1 }
                 continue
             }
-            $wtDir = Initialize-AgentWorktree -Role "IssueSolver" -BranchName "issue-solver-active"
-            try {
-                Publish-AgentEvent -Sender "IssueSolver" -EventType "SolvingNextIssue" -Message "Solving next unclaimed issue in isolated worktree..."
-                Invoke-IssueSolverResolution -workDir $wtDir -repo $repo
-            } finally {
-                Remove-AgentWorktree -Role "IssueSolver"
+            if (Acquire-GitLock -Agent "IssueSolver" -TimeoutSeconds 60) {
+                try {
+                    Publish-AgentEvent -Sender "IssueSolver" -EventType "SolvingNextIssue" -Message "Solving next unclaimed issue..."
+                    Invoke-IssueSolverResolution -workDir $workDir -repo $repo
+                } finally {
+                    Release-GitLock -Agent "IssueSolver"
+                }
+            } else {
+                Set-SubagentDashboardState -Role "IssueSolver" -State "WAITING" -Detail "Waiting for GitLock..."
             }
         } catch { Write-SubagentLog "IssueSolver" "Issue solver loop warning: $_" "WARN" }
         for ($i = 0; $i -lt 20; $i++) { if (Test-SwarmStopRequested) { break }; Start-Sleep -Seconds 1 }
@@ -2606,15 +2630,24 @@ function Start-CompanionSidebarWindow([switch]$Silent, [switch]$FloatingWindow, 
     }
     if (-not (Test-Path $wtPreview)) { $wtPreview = "wt.exe" }
 
-    Write-LogInfo "Splitting Windows Terminal pane into side-by-side sidebar at ${curPct}% width..."
-    try {
-        $wtArgs = @("-w", "0", "split-pane", "-V", "-s", "$splitSize", "-d", "$WORKING_DIR", $pwshPreview, "-NoProfile", "-NoExit", "-EncodedCommand", $encoded)
-        & $wtPreview @wtArgs
-        if ($LASTEXITCODE -eq 0) { return }
-    } catch {}
+    # Only attempt split-pane if running inside Windows Terminal
+    if ($env:WT_SESSION) {
+        Write-LogInfo "Splitting Windows Terminal pane into side-by-side sidebar at ${curPct}% width..."
+        try {
+            $wtArgs = @("-w", "0", "split-pane", "-V", "-s", "$splitSize", "-d", "$WORKING_DIR", $pwshPreview, "-NoProfile", "-NoExit", "-EncodedCommand", $encoded)
+            & $wtPreview @wtArgs
+            if ($LASTEXITCODE -eq 0) { return }
+        } catch {}
+    }
 
-    # If terminal split-pane is not supported in current console host, launch a single dedicated companion window
-    Write-LogInfo "Launching single companion live stream window..."
+    # If running silently at startup and not in Windows Terminal, DO NOT spawn a focus-stealing external window over user tabs
+    if ($Silent) {
+        Write-LogInfo "Live stream logging to '.mcc-claude/cache/logs/live-stream.log'. Press [S] in menu anytime to open live sidebar window."
+        return
+    }
+
+    # If explicitly requested by user (not silent), launch dedicated companion window
+    Write-LogInfo "Launching companion live stream window..."
     $proc = Start-Process $pwshPreview -ArgumentList "-NoProfile", "-NoExit", "-EncodedCommand", $encoded -PassThru -ErrorAction SilentlyContinue
     if ($proc) { $proc.Id | Set-Content -Path $sidebarPidFile -Encoding utf8 }
 } # End Start-CompanionSidebarWindow

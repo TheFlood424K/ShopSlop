@@ -143,27 +143,21 @@ public class DisplayUtil {
         }
 
         Material type = itemStack.getType();
-        String sType = type.toString().toUpperCase();
 
         // Held blocks (saplings, glass panes, torches, etc.) are displayed in the hand.
-        if(isHeldBlock(type)){
+        if (isHeldBlock(type)) {
             return EquipmentSlot.HAND;
         }
 
         // Armor and head-worn items use their dedicated slots, even when the
         // material is also a block (e.g. player heads, carved pumpkins).
-        if(sType.contains("_HELMET") || sType.endsWith("_HEAD") || sType.endsWith("_SKULL")
-                || type == Material.PLAYER_HEAD || type == Material.CARVED_PUMPKIN
-                || type == Material.JACK_O_LANTERN){
+        if (isHeadEquipment(type)) {
             return EquipmentSlot.HEAD;
-        }
-        else if(sType.contains("_CHESTPLATE") || type == Material.ELYTRA){
+        } else if (isChestEquipment(type)) {
             return EquipmentSlot.CHEST;
-        }
-        else if(sType.contains("_LEGGINGS")){
+        } else if (isLegEquipment(type)) {
             return EquipmentSlot.LEGS;
-        }
-        else if(sType.contains("_BOOTS")){
+        } else if (isFeetEquipment(type)) {
             return EquipmentSlot.FEET;
         }
 
@@ -173,6 +167,64 @@ public class DisplayUtil {
         }
 
         return EquipmentSlot.HAND;
+    }
+
+    private static boolean isHeadEquipment(Material type) {
+        if (type == null) {
+            return false;
+        }
+        String sType = type.toString().toUpperCase();
+        if (type == Material.PLAYER_HEAD || type == Material.CARVED_PUMPKIN
+                || type == Material.JACK_O_LANTERN) {
+            return true;
+        }
+        if (sType.endsWith("_HEAD") || sType.endsWith("_SKULL")) {
+            return true;
+        }
+        if (sType.contains("_HELMET")) {
+            return true;
+        }
+        // Turtle helmet
+        if (type == Material.TURTLE_HELMET) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isChestEquipment(Material type) {
+        if (type == null) {
+            return false;
+        }
+        if (type == Material.ELYTRA) {
+            return true;
+        }
+        String sType = type.toString().toUpperCase();
+        if (sType.contains("_CHESTPLATE")) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isLegEquipment(Material type) {
+        if (type == null) {
+            return false;
+        }
+        String sType = type.toString().toUpperCase();
+        if (sType.contains("_LEGGINGS")) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isFeetEquipment(Material type) {
+        if (type == null) {
+            return false;
+        }
+        String sType = type.toString().toUpperCase();
+        if (sType.contains("_BOOTS")) {
+            return true;
+        }
+        return false;
     }
 
     public static Location getStandLocation(Location blockLocation, Material material, BlockFace facing, EquipmentSlot equipmentSlot){
