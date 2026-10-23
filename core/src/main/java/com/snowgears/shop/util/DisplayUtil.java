@@ -142,11 +142,6 @@ public class DisplayUtil {
         Material type = itemStack.getType();
         String sType = type.toString().toUpperCase();
 
-public static EquipmentSlot getEquipmentSlot(ItemStack itemStack){
-
-        Material type = itemStack.getType();
-        String sType = type.toString().toUpperCase();
-
         // Held blocks (saplings, glass panes, torches, etc.) are displayed in the hand.
         if(isHeldBlock(type)){
             return EquipmentSlot.HAND;
@@ -173,7 +168,6 @@ public static EquipmentSlot getEquipmentSlot(ItemStack itemStack){
         }
 
         return EquipmentSlot.HAND;
-    }
     }
 
     public static Location getStandLocation(Location blockLocation, Material material, BlockFace facing, EquipmentSlot equipmentSlot){
