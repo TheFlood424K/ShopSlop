@@ -16,7 +16,7 @@
 
     <properties>
         <paper.version>26.3.build.194-stable</paper.version>
-        <!-- Adventure version matching paper-api 26.2 -->
+        <!-- Adventure version matching paper-api 26.3 -->
         <adventure.version>5.2.0</adventure.version>
         <!-- PINNED. Do not bump without a CI run that reports a non-zero test count.
              3.6.0 discovers ZERO tests on the Linux GitHub runner: surefire prints
