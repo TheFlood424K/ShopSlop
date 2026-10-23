@@ -48,6 +48,8 @@ class DisplayUtilEquipmentSlotTest {
 
     @Test
     void nullAndAirUseHand() {
+        assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(null),
+                "A null item must be displayed in the hand");
         assertEquals(EquipmentSlot.HAND, DisplayUtil.getEquipmentSlot(new ItemStack(Material.AIR)));
     }
 }
