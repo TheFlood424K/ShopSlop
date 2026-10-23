@@ -68,10 +68,13 @@ public class DisplayUtil {
                 stand.getEquipment().setItemInMainHand(itemStack);
                 stand.setRightArmPose(getArmAngle(itemStack));
 
-                try{
-                    if(itemStack.getType() == Material.SHIELD)
+                try {
+                    if (itemStack.getType() == Material.SHIELD) {
                         stand.setSmall(true);
-                } catch (NoSuchFieldError e) {}
+                    }
+                } catch (NoSuchFieldError ignored) {
+                    // Shield support not present in older server versions
+                }
 
                 break;
         }
@@ -104,10 +107,13 @@ public class DisplayUtil {
             case HAND:
                 armorStandData.setRightArmPose(getArmAngle(itemStack));
                 standLocation.setY(standLocation.getY() + 0.7);
-                try{
-                    if(itemStack.getType() == Material.SHIELD)
+                try {
+                    if (itemStack.getType() == Material.SHIELD) {
                         armorStandData.setSmall(true);
-                } catch (NoSuchFieldError e) {}
+                    }
+                } catch (NoSuchFieldError ignored) {
+                    // Shield support not present in older server versions
+                }
 
                 break;
         }
@@ -370,7 +376,9 @@ public class DisplayUtil {
                                 break;
                         }
                     }
-                } catch (NoSuchFieldError e) {}
+                } catch (NoSuchFieldError ignored) {
+                    // Shield support not present in older server versions
+                }
                 break;
         }
 
